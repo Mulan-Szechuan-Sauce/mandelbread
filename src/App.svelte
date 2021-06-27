@@ -3,6 +3,13 @@ import { onMount } from 'svelte';
 import { initializeGl } from './glueTls';
 let canvas;
 
+const width = 1000;
+const height = 1000;
+
+let cx = -0.7436441;
+let cy = 0.1318255;
+let zoom = 2.0;
+
 interface Vec2 {
   x: number;
   y: number;
@@ -58,14 +65,21 @@ onMount(() => {
     const gl: WebGLRenderingContext = canvas.getContext("webgl");
     const program = initializeGl(gl);
 
-    const zoomAmount = gl.getUniformLocation(program, "zoom_amount"); 
+    const cxUniform = gl.getUniformLocation(program, "cx");
+    const cyUniform = gl.getUniformLocation(program, "cy");
+    const widthUniform = gl.getUniformLocation(program, "width");
+    const heightUniform = gl.getUniformLocation(program, "height");
+    const zoomAmountUniform = gl.getUniformLocation(program, "zoom_amount"); 
 
-    let zoomValue = 2.0;
+    gl.uniform1f(widthUniform, width);
+    gl.uniform1f(heightUniform, height);
 
     const renderLoop = (timeStamp) => {
+        gl.uniform1f(cxUniform, cx);
+        gl.uniform1f(cyUniform, cy);
         // set time uniform
-        gl.uniform1f(zoomAmount, zoomValue);
-        zoomValue *= 0.98;
+        gl.uniform1f(zoomAmountUniform, zoom);
+        //zoom *= 0.98;
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.drawArrays(
@@ -75,7 +89,7 @@ onMount(() => {
         );
 
         // recursive invocation
-        // window.requestAnimationFrame(renderLoop);
+        window.requestAnimationFrame(renderLoop);
     };
 
     const c = {
@@ -93,8 +107,28 @@ onMount(() => {
     // start the loop
     window.requestAnimationFrame(renderLoop);
 });
+
+const handleKeydown = (k) => {
+    if (k.key == '+') {
+        zoom *= 0.95;
+    } else if (k.key == '-') {
+        zoom /= 0.95;
+    } else if (k.key == 'h') {
+        cx -= 0.01 * zoom;
+    } else if (k.key == 'j') {
+        cy -= 0.01 * zoom;
+    } else if (k.key == 'k') {
+        cy += 0.01 * zoom;
+    } else if (k.key == 'l') {
+        cx += 0.01 * zoom;
+    }
+};
 </script>
 
+<svelte:window on:keydown={handleKeydown} />
+
 <main>
-    <canvas bind:this={canvas} width="1000" height="1000"></canvas>
+    <canvas bind:this={canvas} width={width} height={height}></canvas>
+    <div>{cx}</div>
+    <div>{cy}</div>
 </main>
